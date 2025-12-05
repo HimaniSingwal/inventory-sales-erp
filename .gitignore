@@ -1,0 +1,18 @@
+# Python cache
+__pycache__/
+*.pyc
+
+venv/
+env/
+erp_env/
+
+db.sqlite3
+
+staticfiles/
+media/
+
+.vscode/
+
+Thumbs.db
+
+*.log
