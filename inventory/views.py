@@ -1,8 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Q, Sum  
-from .models import Product, StockMovement
+from django.db.models import Q, Sum
 
-
+from .models import Product, StockMovement, Sale
 
 
 def product_list(request):
@@ -35,14 +34,11 @@ def product_list(request):
     total_products = all_products.count()
     total_stock = all_products.aggregate(total=Sum("quantity"))["total"] or 0
 
-    total_value = 0
-    for p in all_products:
-        total_value += p.quantity * float(p.price)
+    total_value = sum(p.quantity * float(p.price) for p in all_products)
 
     low_stock_items = all_products.filter(quantity__lt=10).count()
 
-
-    return render(request, 'product_list.html', {
+    return render(request, "product_list.html", {
         "products": products,
         "query": query,
         "sort": sort,
@@ -67,9 +63,9 @@ def add_product(request):
                 price=price,
                 quantity=quantity,
             )
-            return redirect('product_list')
+            return redirect("product_list")
 
-    return render(request, 'add_product.html')
+    return render(request, "add_product.html")
 
 
 def edit_product(request, pk):
@@ -81,15 +77,15 @@ def edit_product(request, pk):
         product.price = request.POST.get("price")
         product.quantity = request.POST.get("quantity")
         product.save()
-        return redirect('product_list')
+        return redirect("product_list")
 
-    return render(request, 'edit_product.html', {'product': product})
+    return render(request, "edit_product.html", {"product": product})
 
 
 def delete_product(request, pk):
     product = get_object_or_404(Product, pk=pk)
     product.delete()
-    return redirect('product_list')
+    return redirect("product_list")
 
 
 def adjust_stock(request, pk):
@@ -124,13 +120,69 @@ def adjust_stock(request, pk):
                         change=change,
                         reason=reason,
                     )
-                    return redirect('product_list')
+                    return redirect("product_list")
 
-    # GET request ya error ke case me recent history bhejte hain
-    movements = product.movements.order_by('-created_at')[:10]
+    movements = product.movements.order_by("-created_at")[:10]
 
-    return render(request, 'adjust_stock.html', {
-        'product': product,
-        'movements': movements,
-        'error': error,
+    return render(request, "adjust_stock.html", {
+        "product": product,
+        "movements": movements,
+        "error": error,
+    })
+
+
+def add_sale(request):
+    products = Product.objects.all()
+    error = None
+
+    if request.method == "POST":
+        product_id = request.POST.get("product")
+        quantity = request.POST.get("quantity")
+
+        product = get_object_or_404(Product, pk=product_id)
+
+        try:
+            qty = int(quantity)
+        except (TypeError, ValueError):
+            error = "Enter valid quantity."
+        else:
+            if qty <= 0:
+                error = "Quantity must be positive."
+            elif qty > product.quantity:
+                error = f"Not enough stock. Available: {product.quantity}"
+            else:
+                # 1) Save sale
+                sale = Sale.objects.create(
+                    product=product,
+                    quantity=qty,
+                    price_at_sale=product.price,
+                )
+
+                # 2) Reduce inventory
+                product.quantity -= qty
+                product.save()
+
+                # 3) Track movement
+                StockMovement.objects.create(
+                    product=product,
+                    change=-qty,
+                    reason="Sale",
+                )
+
+                # 4) Go to invoice page
+                return redirect("sale_invoice", pk=sale.pk)
+
+    return render(request, "add_sale.html", {
+        "products": products,
+        "error": error,
+    })
+
+
+def sale_invoice(request, pk):
+    sale = get_object_or_404(Sale, pk=pk)
+    total = sale.quantity * float(sale.price_at_sale)
+
+    return render(request, "sale_invoice.html", {
+        "sale": sale,
+        "total": total,
     })

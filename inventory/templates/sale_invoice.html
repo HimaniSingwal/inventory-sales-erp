@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Sale Invoice{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>🧾 Sale Invoice</h2>
+    <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+        Print
+    </button>
+</div>
+
+<div class="card shadow-sm p-4" style="max-width: 700px;">
+    <h5 class="mb-3">Invoice Details</h5>
+
+    <div class="mb-2">
+        <strong>Product:</strong> {{ sale.product.name }}
+    </div>
+
+    <div class="mb-2">
+        <strong>SKU:</strong> {{ sale.product.sku }}
+    </div>
+
+    <div class="mb-2">
+        <strong>Price at Sale:</strong> ₹{{ sale.price_at_sale }}
+    </div>
+
+    <div class="mb-2">
+        <strong>Quantity:</strong> {{ sale.quantity }}
+    </div>
+
+    <div class="mb-2">
+        <strong>Total Amount:</strong> <span class="fw-bold">₹{{ total }}</span>
+    </div>
+
+    <div class="mb-2">
+        <strong>Date:</strong> {{ sale.created_at }}
+    </div>
+
+    <hr>
+
+    <p class="text-muted mb-0">
+        Thank you for your purchase. This is a system-generated invoice.
+    </p>
+</div>
+
+<div class="mt-4">
+    <a href="{% url 'product_list' %}" class="btn btn-secondary">
+        ← Back to Products
+    </a>
+</div>
+
+{% endblock %}
