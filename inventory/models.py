@@ -8,4 +8,12 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+class StockMovement(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='movements')
+    change = models.IntegerField()   # +10 = stock in, -5 = stock out
+    reason = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.product.name} ({self.change})"
 
